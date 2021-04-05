@@ -6,15 +6,15 @@ This library extends the [neurodiffeq](https://github.com/NeuroDiffGym/neurodiff
 
 # Install
 
-**Install/update to latest version**
+**To simply install/update to latest version**
 
 ```bash
 pip install -U git+https://github.com/NeuroDiffGym/neurodiffeq-conditions
 ```
 
-**Edit and develop this library**
+**Alternatively, to edit and develop this library**
 
-```
+```bash
 git clone https://github.com/NeuroDiffGym/neurodiffeq-conditions
 cd neurodiffeq-conditions && pip install -e .
 git checkout <commit-or-branch-or-tag>
