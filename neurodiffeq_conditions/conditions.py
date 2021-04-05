@@ -3,6 +3,27 @@ from neurodiffeq.conditions import BaseCondition
 from neurodiffeq import diff
 
 
+class Condition3D(BaseCondition):
+    r"""A Dirichlet-Neumann mixed condition defined on a 3D region.
+    The conditions are enforced on 2-D planes perpendicular to :math:`x`-, :math:`y`-, or :math:`z`-axis.
+    :param: Components of this condition.
+    :type: list[ConditionComponent3D]
+    """
+
+    def __init__(self, components=None):
+        super(Condition3D, self).__init__()
+        # make sure components is ordered
+        self.components = tuple(components or [])
+
+    def enforce(self, net, x, y, z):
+        DNs = tuple(comp.get_dn(net, x, y, z) for comp in self.components)
+        ls = tuple(comp.signed_distance_from(x, y, z) for comp in self.components)
+
+        numerator = sum(map(lambda DNl: DNl[0][0] / DNl[1] ** 2 + DNl[0][1] / DNl[1], zip(DNs, ls)))
+        denominator = sum(map(lambda l: 1 / l ** 2, ls))
+        return net(torch.cat((x, y, z), dim=1)) + numerator / denominator
+
+
 class ConditionComponent3D:
     r"""Component of a three-dimensional BC/IC condition. Must be used together with a Condition3D.
     This component enforces
