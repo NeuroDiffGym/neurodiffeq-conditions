@@ -2,7 +2,7 @@
 
 This library extends the [neurodiffeq](https://github.com/NeuroDiffGym/neurodiffeq) library by providing more initial / boundary conditions. 
 
-**The APIs are NOT finalized until incorporated into neurodiffeq. Use with caution.**
+**The APIs are NOT finalized until incorporated into the main neurodiffeq library. USE WITH CAUTION.**
 
 # Install
 
@@ -17,7 +17,7 @@ pip install -U git+https://github.com/NeuroDiffGym/neurodiffeq-conditions
 ```bash
 git clone https://github.com/NeuroDiffGym/neurodiffeq-conditions
 cd neurodiffeq-conditions && pip install -e .
-git checkout <commit-or-branch-or-tag>
+git checkout <COMMIT-OR-BRANCH-OR-TAG>
 ```
 
 # Conditions
@@ -32,32 +32,30 @@ A boundary condition imposed on a rectangular region in R^3. To construct such a
 import torch
 from neurodiffeq_conditions import ConditionComponent3D
 
-# Dirichlet: u(x=0.0, y, z) = f(y, z) = sin(y) + cos(z) 
-# Neumann: None
+# Just Dirichlet: u(x=0.0, y, z) = f(y,z) = sin(y) + cos(z) 
 f = lambda x, y, z: torch.sin(y) + torch.cos(z)
-comp_x_0 = ConditionComponent3D(0.0, f_dirichlet=f, coord_name='x')
+comp_x0 = ConditionComponent3D(0.0, f_dirichlet=f, coord_name='x')
 
-# Dirichlet: None
-# Neumann u'_x(x=1.0, y, z) = g(y, z) = 2*y + 3*z
+# Just Neumann: u'_x(x=1.0, y, z) = g(y,z) = 2*y + 3*z
 g = lambda x, y, z: 2*x + 3*z
-comp_x_1 = ConditionComponent3D(1.0, f_neumann=g, coord_name='x')
+comp_x1 = ConditionComponent3D(1.0, f_neumann=g, coord_name='x')
 
-# Dirichlet: u(x=2.0, y, z) = f(y, z) = sin(y) + cos(z) 
-# Neumann u'_x(x=2.0, y, z) = g(y, z) = 2*y + 3*z
+# Dirichlet: u(x=2.0, y, z) = f(y,z) = sin(y) + cos(z) 
+# Neumann: u'_x(x=2.0, y, z) = g(y,z) = 2*y + 3*z
 f = lambda x, y, z: torch.sin(y) + torch.cos(z)
 g = lambda x, y, z: 2*x + 3*z
-comp_x_2 = ConditionComponent3D(2.0, f_dirichlet=f, f_neumann=g, coord_name='x')
+comp_x2 = ConditionComponent3D(2.0, f_dirichlet=f, f_neumann=g, coord_name='x')
 ```
 
 **Imposing condition on a 2-D plane perpendicular to y- or z-axis**
 
 ```python
 # similar to above, just change `coord_name='x'` to `coord_name='y'`
-comp_y_0 = ConditionComponent3D(..., coord_name='y')
-comp_y_1 = ConditionComponent3D(..., coord_name='y')
+comp_y0 = ConditionComponent3D(..., coord_name='y')
+comp_y1 = ConditionComponent3D(..., coord_name='y')
 # or change it to 'z'
-comp_z_0 = ConditionComponent3D(..., coord_name='z')
-comp_z_1 = ConditionComponent3D(..., coord_name='z')
+comp_z0 = ConditionComponent3D(..., coord_name='z')
+comp_z1 = ConditionComponent3D(..., coord_name='z')
 ```
 
 **Putting Them Together** 
@@ -65,8 +63,8 @@ comp_z_1 = ConditionComponent3D(..., coord_name='z')
 ```python
 from neurodiffeq_conditions import Condition3D
 
-# You can put in as many conditions as you like
-condition = Condition3D(components=[comp_x0, comp_x1, comp_y0, comp_y1, comp_z0, comp_z1])
+# You can put in arbitraily many components, in any order
+condition = Condition3D(components=[comp_x0, comp_x1, comp_x2, comp_y0, comp_y1, comp_z0, comp_z1, ...])
 ```
 
 The constructed `condition` can now be used for neurodiffeq.
