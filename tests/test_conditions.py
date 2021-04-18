@@ -7,6 +7,7 @@ from neurodiffeq import diff
 from neurodiffeq.networks import FCNN
 from neurodiffeq.generators import Generator3D, SamplerGenerator, StaticGenerator
 from neurodiffeq_conditions.conditions import ConditionComponent3D, ComposedCondition3D, Condition3D
+from neurodiffeq_conditions.conditions import ConditionComponent, ComposedCondition
 
 N = 10
 EPS = 1e-10
@@ -134,10 +135,17 @@ def test_condition_component_3d_get_dn(w0, f, g, xyz, net_31, coord_index):
     assert all_close(N, 0.0)
 
 
+@pytest.mark.parametrize(
+    argnames=['ComponentClass', 'ConditionClass'],
+    argvalues=[
+        [ConditionComponent, ComposedCondition],
+        [ConditionComponent3D, ComposedCondition3D],
+    ],
+)
 @pytest.mark.parametrize(argnames='coord_index', argvalues=[0, 1, 2])
-def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index):
-    component = ConditionComponent3D(w0, f, g, coord_index=coord_index)
-    condition = ComposedCondition3D(components=[component])
+def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index, ComponentClass, ConditionClass):
+    component = ComponentClass(w0, f, g, coord_index=coord_index)
+    condition = ConditionClass(components=[component])
     xyz = list(xyz)
     xyz[coord_index] = torch.ones_like(xyz[coord_index], requires_grad=True) * (w0 + EPS)
     xyz_tensor = torch.cat(xyz, dim=1)
