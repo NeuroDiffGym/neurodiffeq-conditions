@@ -6,7 +6,7 @@ import torch
 from neurodiffeq import diff
 from neurodiffeq.networks import FCNN
 from neurodiffeq.generators import Generator3D, SamplerGenerator, StaticGenerator
-from neurodiffeq_conditions.conditions import ConditionComponent3D, Condition3D
+from neurodiffeq_conditions.conditions import ConditionComponent3D, ComposedCondition3D, Condition3D
 
 N = 10
 EPS = 1e-10
@@ -135,9 +135,9 @@ def test_condition_component_3d_get_dn(w0, f, g, xyz, net_31, coord_index):
 
 
 @pytest.mark.parametrize(argnames='coord_index', argvalues=[0, 1, 2])
-def test_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index):
+def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index):
     component = ConditionComponent3D(w0, f, g, coord_index=coord_index)
-    condition = Condition3D(components=[component])
+    condition = ComposedCondition3D(components=[component])
     xyz = list(xyz)
     xyz[coord_index] = torch.ones_like(xyz[coord_index], requires_grad=True) * (w0 + EPS)
     xyz_tensor = torch.cat(xyz, dim=1)
@@ -147,7 +147,12 @@ def test_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index):
     assert all_close(diff(u, xyz[coord_index]), g(xyz_tensor), atol=1e-4, rtol=1e-2)
 
 
-def test_condition_3d_six_walls(six_walls, net_31):
+def test_legacy_condition_classname():
+    with pytest.warns(FutureWarning):
+        Condition3D()
+
+
+def test_composed_condition_3d_six_walls(six_walls, net_31):
     gen, x0, y0, z0, x1, y1, z1, x0_val, y0_val, z0_val, x1_val, y1_val, z1_val, \
     x0_prime, y0_prime, z0_prime, x1_prime, y1_prime, z1_prime = six_walls
 
@@ -159,7 +164,7 @@ def test_condition_3d_six_walls(six_walls, net_31):
     comp_x1 = ConditionComponent3D(x1, f_dirichlet=x1_val, f_neumann=x1_prime, coord_name='x')
     comp_y1 = ConditionComponent3D(y1, f_dirichlet=y1_val, f_neumann=y1_prime, coord_name='y')
     comp_z1 = ConditionComponent3D(z1, f_dirichlet=z1_val, f_neumann=z1_prime, coord_name='z')
-    condition = Condition3D(components=[comp_x0, comp_y0, comp_z0, comp_x1, comp_y1, comp_z1])
+    condition = ComposedCondition3D(components=[comp_x0, comp_y0, comp_z0, comp_x1, comp_y1, comp_z1])
 
     x0_tensor = (x0 + EPS) * torch.ones_like(x, requires_grad=True)
     u_x0 = condition.enforce(net_31, x0_tensor, y, z)
