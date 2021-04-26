@@ -84,12 +84,12 @@ class ConditionComponent:
         if self.f_d is None:
             D = 0.0
         else:
-            D = self.f_d(p_tensor) - net(p_tensor)
+            D = self.f_d(*projection) - net(p_tensor)
 
         if self.f_n is None:
             N = 0.0
         else:
-            N = self.f_n(p_tensor) - diff(net(p_tensor), projection[self.idx])
+            N = self.f_n(*projection) - diff(net(p_tensor), projection[self.idx])
 
         return D, N
 

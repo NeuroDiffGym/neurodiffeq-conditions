@@ -13,6 +13,11 @@ N = 10
 EPS = 1e-10
 
 
+class FCNNSplitInput(FCNN):
+    def forward(self, *x):
+        return super().forward(torch.cat(x, dim=1))
+
+
 @pytest.fixture
 def w0():
     return random.random()
@@ -20,12 +25,12 @@ def w0():
 
 @pytest.fixture
 def f():
-    return FCNN(3, 1, hidden_units=(2,))
+    return FCNNSplitInput(3, 1)
 
 
 @pytest.fixture
 def g():
-    return FCNN(3, 1, hidden_units=(2,))
+    return FCNNSplitInput(3, 1)
 
 
 @pytest.fixture
@@ -42,10 +47,10 @@ def net_31():
 def six_walls():
     x0, y0, z0 = [random.random() for _ in range(3)]
     x1, y1, z1 = [2 + random.random() for _ in range(3)]
-    x0_val, y0_val, z0_val = [FCNN(3, 1) for _ in range(3)]
-    x1_val, y1_val, z1_val = [FCNN(3, 1) for _ in range(3)]
-    x0_prime, y0_prime, z0_prime = [FCNN(3, 1) for _ in range(3)]
-    x1_prime, y1_prime, z1_prime = [FCNN(3, 1) for _ in range(3)]
+    x0_val, y0_val, z0_val = [FCNNSplitInput(3, 1) for _ in range(3)]
+    x1_val, y1_val, z1_val = [FCNNSplitInput(3, 1) for _ in range(3)]
+    x0_prime, y0_prime, z0_prime = [FCNNSplitInput(3, 1) for _ in range(3)]
+    x1_prime, y1_prime, z1_prime = [FCNNSplitInput(3, 1) for _ in range(3)]
 
     EPS = 0.3
     g = Generator3D(
@@ -117,21 +122,21 @@ def test_condition_component_3d_get_dn(w0, f, g, xyz, net_31, coord_index):
     p = component._get_projection(*xyz)
     D, N = component.get_dn(net_31, *xyz)
     p_tensor = torch.cat(p, dim=1)
-    assert all_close(D, f(p_tensor) - net_31(p_tensor))
-    assert all_close(N, g(p_tensor) - diff(net_31(p_tensor), p[coord_index]))
+    assert all_close(D, f(*p) - net_31(p_tensor))
+    assert all_close(N, g(*p) - diff(net_31(p_tensor), p[coord_index]))
 
     component = ConditionComponent3D(w0, None, g, coord_index=coord_index)
     p = component._get_projection(*xyz)
     D, N = component.get_dn(net_31, *xyz)
     p_tensor = torch.cat(p, dim=1)
     assert all_close(D, 0.0)
-    assert all_close(N, g(p_tensor) - diff(net_31(p_tensor), p[coord_index]))
+    assert all_close(N, g(*p) - diff(net_31(p_tensor), p[coord_index]))
 
     component = ConditionComponent3D(w0, f, None, coord_index=coord_index)
     p = component._get_projection(*xyz)
     D, N = component.get_dn(net_31, *xyz)
     p_tensor = torch.cat(p, dim=1)
-    assert all_close(D, f(p_tensor) - net_31(p_tensor))
+    assert all_close(D, f(*p) - net_31(p_tensor))
     assert all_close(N, 0.0)
 
 
@@ -151,8 +156,8 @@ def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_ind
     xyz_tensor = torch.cat(xyz, dim=1)
 
     u = condition.enforce(net_31, *xyz)
-    assert all_close(u, f(xyz_tensor), atol=1e-4, rtol=1e-2)
-    assert all_close(diff(u, xyz[coord_index]), g(xyz_tensor), atol=1e-4, rtol=1e-2)
+    assert all_close(u, f(*xyz), atol=1e-4, rtol=1e-2)
+    assert all_close(diff(u, xyz[coord_index]), g(*xyz), atol=1e-4, rtol=1e-2)
 
 
 def test_legacy_condition_classname():
