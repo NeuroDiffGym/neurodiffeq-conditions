@@ -2,6 +2,7 @@ import torch
 from neurodiffeq.conditions import BaseCondition
 from neurodiffeq import diff
 from neurodiffeq._version_utils import warn_deprecate_class
+from abc import ABC, abstractmethod
 
 
 class ComposedCondition(BaseCondition):
@@ -36,10 +37,22 @@ class ComposedCondition3D(ComposedCondition):
         return super().enforce(net, x, y, z)
 
 
-Condition3D = warn_deprecate_class(ComposedCondition3D)
+class ComposedCondition2D(ComposedCondition):
+    def enforce(self, net, x, y):
+        return super().enforce(net, x, y)
 
 
-class ConditionComponent:
+class BaseConditionComponent(ABC):
+    @abstractmethod
+    def signed_distance_from(self, *x):
+        pass
+
+    @abstractmethod
+    def get_dn(self, *x):
+        pass
+
+
+class ConditionComponent(BaseConditionComponent):
     r"""Component of a N-dimensional BC/IC condition. Must be used together with a ComposedCondition.
     This component enforces
 
@@ -60,14 +73,15 @@ class ConditionComponent:
 
     _index_lookup = {}
 
-    def __init__(self, w, f_dirichlet=None, f_neumann=None, coord_index=None):
+    def __init__(self, w, f_dirichlet=None, f_neumann=None, coord_index=None, coord_name=None):
         if not (f_dirichlet or f_neumann):
             raise ValueError("Either `f_dirichlet` or `f_neumann` must be specified")
         self.w = w
         self.f_d, self.f_n = f_dirichlet, f_neumann
-        if not isinstance(coord_index, int):
-            raise TypeError(f"coord_index must be an int, got {coord_index} of type {type(coord_index)}")
-        self.idx = coord_index
+        if coord_index is None:
+            self.idx = self._index_lookup[coord_name]
+        else:
+            self.idx = coord_index
 
     def signed_distance_from(self, *x):
         return x[self.idx] - self.w
@@ -115,9 +129,12 @@ class ConditionComponent3D(ConditionComponent):
     :type coord_name: str
     """
 
-    _index_lookup = dict(x=0, y=1, z=2)
+    _index_lookup = dict(x=0, y=1, z=2, t=2)
 
-    def __init__(self, w, f_dirichlet=None, f_neumann=None, coord_index=None, coord_name=None):
-        if coord_index is None:
-            coord_index = self._index_lookup[coord_name]
-        super().__init__(w, f_dirichlet=f_dirichlet, f_neumann=f_neumann, coord_index=coord_index)
+
+class ConditionComponent2D(ConditionComponent):
+    _index_lookup = dict(x=0, y=1, t=1)
+
+
+# DEPRECATED NAMES
+Condition3D = warn_deprecate_class(ComposedCondition3D)
