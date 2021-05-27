@@ -10,7 +10,7 @@ from neurodiffeq_conditions.conditions import ConditionComponent3D, ComposedCond
 from neurodiffeq_conditions.conditions import ConditionComponent, ComposedCondition
 
 N = 10
-EPS = 1e-10
+EPS = 1e-8
 
 
 class FCNNSplitInput(FCNN):
