@@ -7,7 +7,7 @@ from neurodiffeq import diff
 from neurodiffeq.networks import FCNN
 from neurodiffeq.generators import Generator3D, SamplerGenerator, StaticGenerator
 from neurodiffeq_conditions.conditions import ConditionComponent3D, ComposedCondition3D, Condition3D
-from neurodiffeq_conditions.conditions import ConditionComponent, ComposedCondition
+from neurodiffeq_conditions.conditions import ConditionComponent, ComposedCondition, RobinConditionComponent
 
 N = 10
 EPS = 1e-8
@@ -67,6 +67,15 @@ def six_walls():
         x0_val, y0_val, z0_val, x1_val, y1_val, z1_val,
         x0_prime, y0_prime, z0_prime, x1_prime, y1_prime, z1_prime,
     )
+
+
+@pytest.fixture
+def ones():
+    return torch.ones((N, 1), requires_grad=True)
+
+
+def linspace_without_endpoints(start, end, steps, *args, **kwargs):
+    return torch.linspace(start, end, steps + 2, *args, **kwargs)[1: -1]
 
 
 def lookup_index(coord_name):
@@ -208,3 +217,47 @@ def test_composed_condition_3d_six_walls(six_walls, net_31):
     u_z1 = condition.enforce(net_31, x, y, z1_tensor)
     assert all_close(u_z1, z1_val(torch.cat((x, y, z1_tensor), dim=1)))
     assert all_close(diff(u_z1, z1_tensor), z1_prime(torch.cat((x, y, z1_tensor), dim=1)), atol=1e-4, rtol=1e-2)
+
+
+def test_robin_2d(ones):
+    x0, x1 = 0, 1
+    y0, y1 = 0, 1
+
+    fd_x = FCNNSplitInput(2, 1)
+    fd_y = FCNNSplitInput(2, 1)
+    fr_x = FCNNSplitInput(2, 1)
+    a_x, b_x = 1.0, 2.0
+    fr_y = FCNNSplitInput(2, 1)
+    a_y, b_y = 3.0, 4.0
+
+    comp_x1 = ConditionComponent(x1, f_dirichlet=fd_x, f_neumann=None, coord_index=0)
+    comp_y0 = ConditionComponent(y0, f_dirichlet=fd_y, f_neumann=None, coord_index=1)
+    comp_x0 = RobinConditionComponent(x0, a_x, b_x, fr_x, coord_index=0)
+    comp_y1 = RobinConditionComponent(y1, a_y, b_y, fr_y, coord_index=1)
+
+    condition = ComposedCondition([comp_x0, comp_x1, comp_y0, comp_y1])
+    net = FCNN(2, 1)
+
+    x = (x1 - EPS) * ones
+    y = linspace_without_endpoints(y0, y1, N, requires_grad=True).reshape(-1, 1)
+    u = condition.enforce(net, x, y)
+    assert all_close(u, fd_x(x, y), rtol=1e-4)
+
+    x = linspace_without_endpoints(x0, x1, N, requires_grad=True).reshape(-1, 1)
+    y = (y0 + EPS) * ones
+    u = condition.enforce(net, x, y)
+    assert all_close(u, fd_y(x, y), rtol=1e-4)
+
+    x = (x0 + EPS) * ones
+    y = linspace_without_endpoints(y0, y1, N, requires_grad=True).reshape(-1, 1)
+    u = condition.enforce(net, x, y)
+    pred = a_x * u + b_x * diff(u, x)
+    true = fr_x(x, y)
+    assert all_close(pred, true, rtol=1e-3)
+
+    x = linspace_without_endpoints(x0, x1, N, requires_grad=True).reshape(-1, 1)
+    y = (y1 - EPS) * ones
+    u = condition.enforce(net, x, y)
+    pred = a_y * u + b_y * diff(u, y)
+    true = fr_y(x, y)
+    assert all_close(pred, true, rtol=1e-3)
