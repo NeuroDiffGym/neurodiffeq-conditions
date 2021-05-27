@@ -108,6 +108,35 @@ class ConditionComponent(BaseConditionComponent):
         return D, N
 
 
+class RobinConditionComponent(ConditionComponent):
+    _index_lookup = {}
+
+    def __init__(self, w, a, b, f, coord_index=None, coord_name=None):
+        self.w = w
+        self.a = a
+        self.b = b
+        self.f = f
+        if coord_index is None:
+            self.idx = self._index_lookup[coord_name]
+        else:
+            self.idx = coord_index
+
+    def _get_projection(self, *x):
+        l = list(x)
+        l[self.idx] = self.w * torch.ones_like(l[self.idx], requires_grad=True)
+        return l
+
+    def get_dn(self, net, *x):
+        projection = self._get_projection(*x)
+        p_tensor = torch.cat(projection, dim=1)
+
+        output_val = net(p_tensor)
+        normal_der = diff(output_val, projection[self.idx])
+        R = (self.f(*projection) - self.a * output_val - self.b * normal_der) / 2
+
+        return R / self.a, R / self.b
+
+
 class ConditionComponent3D(ConditionComponent):
     r"""Component of a three-dimensional BC/IC condition. Must be used together with a Condition3D.
     This component enforces
