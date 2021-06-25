@@ -12,14 +12,18 @@ class ComposedCondition(BaseCondition):
     :type: list[ConditionComponent]
     """
 
-    def __init__(self, components=None):
+    def __init__(self, components=None, detach_distance=False):
         super().__init__()
         # make sure components is ordered
         self.components = tuple(components or [])
+        self.detach_distance = detach_distance
 
     def enforce(self, net, *coords):
         DNs = tuple(comp.get_dn(net, *coords) for comp in self.components)
-        ls = tuple(comp.signed_distance_from(*coords) for comp in self.components)
+        if self.detach_distance:
+            ls = tuple(comp.signed_distance_from(*coords).detach() for comp in self.components)
+        else:
+            ls = tuple(comp.signed_distance_from(*coords) for comp in self.components)
 
         numerator = sum(map(lambda DNl: DNl[0][0] / DNl[1] ** 2 + DNl[0][1] / DNl[1], zip(DNs, ls)))
         denominator = sum(map(lambda l: 1 / l ** 2, ls))
