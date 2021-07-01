@@ -19,6 +19,9 @@ class ComposedCondition(BaseCondition):
         self.detach_distance = detach_distance
 
     def enforce(self, net, *coords):
+        if not self.components:
+            return net(torch.cat(coords, dim=1))
+
         DNs = tuple(comp.get_dn(net, *coords) for comp in self.components)
         if self.detach_distance:
             ls = tuple(comp.signed_distance_from(*coords).detach() for comp in self.components)
