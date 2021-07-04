@@ -182,7 +182,7 @@ class BoundedComponent2D(ConditionComponent):
                  v_lower=None, v_upper=None):
         super(BoundedComponent2D, self).__init__(
             w=w, f_dirichlet=f_dirichlet, f_neumann=f_neumann, coord_index=coord_index, coord_name=coord_name)
-        if self.v_lower > self.v_upper:
+        if v_lower > v_upper:
             raise ValueError(f"v_lower={v_lower} cannot be greater than v_upper={v_upper}")
         self.v_lower = v_lower
         self.v_upper = v_upper
