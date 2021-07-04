@@ -12,8 +12,11 @@ class ComposedCondition(BaseCondition):
     :type: list[ConditionComponent]
     """
 
-    def __init__(self, components=None, detach_distance=False):
+    def __init__(self, components=None, detach_distance=False, k=2):
         super().__init__()
+        if k <= 1:
+            raise ValueError("k must be greater than 1")
+        self.k = k
         # make sure components is ordered
         self.components = tuple(components or [])
         self.detach_distance = detach_distance
@@ -28,8 +31,8 @@ class ComposedCondition(BaseCondition):
         else:
             ls = tuple(comp.signed_distance_from(*coords) for comp in self.components)
 
-        numerator = sum(map(lambda DNl: DNl[0][0] / DNl[1] ** 2 + DNl[0][1] / DNl[1], zip(DNs, ls)))
-        denominator = sum(map(lambda l: 1 / l ** 2, ls))
+        numerator = sum(map(lambda DN_l: (DN_l[0][0] + DN_l[0][1] * DN_l[1]) / DN_l[1] ** self.k, zip(DNs, ls)))
+        denominator = sum(map(lambda l: 1 / l ** self.k, ls))
         return net(torch.cat(coords, dim=1)) + numerator / denominator
 
 

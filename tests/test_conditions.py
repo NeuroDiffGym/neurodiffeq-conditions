@@ -149,6 +149,9 @@ def test_condition_component_3d_get_dn(w0, f, g, xyz, net_31, coord_index):
     assert all_close(N, 0.0)
 
 
+# FIXME detach_distance not working
+# @pytest.mark.parametrize(argnames='detach_distance', argvalues=[True, False])
+@pytest.mark.parametrize(argnames='k', argvalues=[2, 3])
 @pytest.mark.parametrize(
     argnames=['ComponentClass', 'ConditionClass'],
     argvalues=[
@@ -157,9 +160,10 @@ def test_condition_component_3d_get_dn(w0, f, g, xyz, net_31, coord_index):
     ],
 )
 @pytest.mark.parametrize(argnames='coord_index', argvalues=[0, 1, 2])
-def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index, ComponentClass, ConditionClass):
+def test_composed_condition_3d_single_component(w0, f, g, xyz, net_31, coord_index, ComponentClass, ConditionClass, k,
+                                                detach_distance):
     component = ComponentClass(w0, f, g, coord_index=coord_index)
-    condition = ConditionClass(components=[component])
+    condition = ConditionClass(components=[component], k=k, detach_distance=detach_distance)
     xyz = list(xyz)
     xyz[coord_index] = torch.ones_like(xyz[coord_index], requires_grad=True) * (w0 + EPS)
     xyz_tensor = torch.cat(xyz, dim=1)
