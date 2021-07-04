@@ -175,5 +175,36 @@ class ConditionComponent2D(ConditionComponent):
     _index_lookup = dict(x=0, y=1, t=1)
 
 
+class BoundedComponent2D(ConditionComponent):
+    _index_lookup = dict(x=0, y=1, t=1)
+
+    def __init__(self, w, f_dirichlet=None, f_neumann=None, coord_index=None, coord_name=None,
+                 v_lower=None, v_upper=None):
+        super(BoundedComponent2D, self).__init__(
+            w=w, f_dirichlet=f_dirichlet, f_neumann=f_neumann, coord_index=coord_index, coord_name=coord_name)
+        if self.lower > self.upper:
+            raise ValueError(f"v_lower={v_lower} cannot be greater than v_upper={v_upper}")
+        self.v_lower = v_lower
+        self.v_upper = v_upper
+
+    def _get_projection(self, *x):
+        if self.idx == 0:
+            w, v = x
+        else:
+            v, w = x
+
+        proj_w = self.w * torch.ones_like(w, requires_grad=(self.f_n is not None))
+        proj_v = torch.clone(v)
+        if self.v_upper is not None:
+            proj_v[v > self.v_upper] = self.v_upper
+        if self.v_lower is not None:
+            proj_v[v < self.v_lower] = self.v_lower
+
+        if self.idx == 0:
+            return proj_w, proj_v
+        else:
+            return proj_v, proj_w
+
+
 # DEPRECATED NAMES
 Condition3D = warn_deprecate_class(ComposedCondition3D)
