@@ -18,7 +18,7 @@ class ComposedCondition(BaseCondition):
             raise ValueError("k must be greater than 1")
         self.k = k
         # make sure components is ordered
-        self.components = tuple(components or [])
+        self.components = list(components or [])
         self.detach_distance = detach_distance
 
     def enforce(self, net, *coords):
