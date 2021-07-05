@@ -12,27 +12,30 @@ class ComposedCondition(BaseCondition):
     :type: list[ConditionComponent]
     """
 
-    def __init__(self, components=None, detach_distance=False, k=2):
+    def __init__(self, components=None, detach=False, k=2):
         super().__init__()
         if k <= 1:
             raise ValueError("k must be greater than 1")
         self.k = k
         # make sure components is ordered
         self.components = list(components or [])
-        self.detach_distance = detach_distance
+        self.detach = detach
 
     def enforce(self, net, *coords):
         if not self.components:
             return net(torch.cat(coords, dim=1))
 
         DNs = tuple(comp.get_dn(net, *coords) for comp in self.components)
-        if self.detach_distance:
-            ls = tuple(comp.signed_distance_from(*coords).detach() for comp in self.components)
+        ls = tuple(comp.signed_distance_from(*coords) for comp in self.components)
+        if self.detach:
+            ws = [l.detach() ** self.k for l in ls]
         else:
-            ls = tuple(comp.signed_distance_from(*coords) for comp in self.components)
-
-        numerator = sum(map(lambda DN_l: (DN_l[0][0] + DN_l[0][1] * DN_l[1]) / DN_l[1] ** self.k, zip(DNs, ls)))
-        denominator = sum(map(lambda l: 1 / l ** self.k, ls))
+            ws = [l ** self.k for l in ls]
+        numerator = sum(map(
+            lambda DN_l_w: (DN_l_w[0][0] + DN_l_w[0][1] * DN_l_w[1]) / DN_l_w[2],
+            zip(DNs, ls, ws)
+        ))
+        denominator = sum(map(lambda w: 1 / w, ws))
         return net(torch.cat(coords, dim=1)) + numerator / denominator
 
 
