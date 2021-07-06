@@ -86,11 +86,12 @@ class ConditionComponent(BaseConditionComponent):
 
     _index_lookup = {}
 
-    def __init__(self, w, f_dirichlet=None, f_neumann=None, coord_index=None, coord_name=None):
+    def __init__(self, w, f_dirichlet=None, f_neumann=None, bias=0.0, coord_index=None, coord_name=None):
         if not (f_dirichlet or f_neumann):
             raise ValueError("Either `f_dirichlet` or `f_neumann` must be specified")
         self.w = w
         self.f_d, self.f_n = f_dirichlet, f_neumann
+        self.bias = bias
         if coord_index is None:
             self.idx = self._index_lookup[coord_name]
         else:
@@ -109,7 +110,7 @@ class ConditionComponent(BaseConditionComponent):
         p_tensor = torch.cat(projection, dim=1)
 
         if self.f_d is None:
-            D = 0.0
+            D = self.bias
         else:
             D = self.f_d(*projection) - net(p_tensor)
 
